@@ -172,7 +172,7 @@ Flags potentially sensitive files:
 - **Best Practices** - Learn from well-structured projects
 - **Technology Research** - Discover how different tools are organized
 
-## ⚙️ Configuration
+## ⚙️ Configuration (Optional)
 
 ### Environment Variables
 ```bash
