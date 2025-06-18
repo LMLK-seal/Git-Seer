@@ -203,19 +203,6 @@ We welcome contributions! Here's how you can help:
 4. ✅ **Add tests if applicable**
 5. 📤 **Submit a pull request**
 
-### Development Setup
-```bash
-# Clone your fork
-git clone https://github.com/LMLK-Seal/git-seer.git
-cd git-seer
-
-# Install development dependencies
-pip install -r requirements.txt
-
-# Run tests
-python -m pytest tests/
-```
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
