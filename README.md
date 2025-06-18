@@ -184,6 +184,177 @@ export GITHUB_TOKEN=your_personal_access_token
 - **Unauthenticated**: 60 requests/hour
 - **Authenticated**: 5,000 requests/hour
 
+### 🔑 GitHub Authentication Setup
+
+Git Seer works seamlessly without any configuration, but adding a GitHub Personal Access Token dramatically improves your experience by increasing API rate limits from 60 to 5,000 requests per hour.
+
+#### Quick Setup
+
+```bash
+# Set your GitHub token (optional but recommended)
+export GITHUB_TOKEN=your_personal_access_token
+```
+
+#### Code Implementation Required
+
+To enable token authentication, you need to modify both seer.py and seer-tui.py. Here are the required changes:
+
+**Step 1: Add import at the top of both files**
+
+```python
+import os  # Add this import if not already present
+```
+
+**Step 2: Update the request functions in seer.py**
+
+Current Code (Anonymous):
+
+```python
+def get_repo_metadata(repo_owner: str, repo_name: str) -> dict | None:
+    api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}"
+    try:
+        response = requests.get(api_url)  # ← No authentication
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException:
+        return None
+```
+
+Updated Code (With Token Support):
+
+```python
+def get_repo_metadata(repo_owner: str, repo_name: str) -> dict | None:
+    api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}"
+    
+    # Check for GitHub token and set up headers
+    token = os.getenv("GITHUB_TOKEN")
+    headers = {}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    
+    try:
+        response = requests.get(api_url, headers=headers)  # ← Now with auth
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException:
+        return None
+```
+
+**Step 3: Update the get_repo_tree function in seer.py**
+
+Current Code:
+
+```python
+def get_repo_tree(repo_owner: str, repo_name: str, branch: str = "main") -> list | None:
+    api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/git/trees/{branch}?recursive=1"
+    try:
+        response = requests.get(api_url)  # ← No authentication
+        # ... rest of function
+```
+
+Updated Code:
+
+```python
+def get_repo_tree(repo_owner: str, repo_name: str, branch: str = "main") -> list | None:
+    api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/git/trees/{branch}?recursive=1"
+    
+    # Check for GitHub token and set up headers
+    token = os.getenv("GITHUB_TOKEN")
+    headers = {}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    
+    try:
+        response = requests.get(api_url, headers=headers)  # ← Now with auth
+        # ... rest of function remains the same
+```
+
+**Step 4: Update the get_tree function in seer-tui.py**
+
+Current Code:
+
+```python
+def get_tree(branch: str = "main") -> list | None:
+    api_url = f"https://api.github.com/repos/{owner}/{name}/git/trees/{branch}?recursive=1"
+    try:
+        response = requests.get(api_url, timeout=10)  # ← No authentication
+        # ... rest of function
+```
+
+Updated Code:
+
+```python
+def get_tree(branch: str = "main") -> list | None:
+    api_url = f"https://api.github.com/repos/{owner}/{name}/git/trees/{branch}?recursive=1"
+    
+    # Check for GitHub token and set up headers
+    token = os.getenv("GITHUB_TOKEN")
+    headers = {}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    
+    try:
+        response = requests.get(api_url, headers=headers, timeout=10)  # ← Now with auth
+        # ... rest of function remains the same
+```
+
+#### How Authentication Works
+
+The `requests.get()` function sends standard HTTP requests with no inherent knowledge of GitHub's authentication system:
+
+**Without Token (Anonymous Requests):**
+- GitHub API receives unauthenticated request
+- Counts against public rate limit (60 requests/hour per IP)
+- ⚡ Analysis Capacity: ~30-60 repositories/hour
+
+**With Token (Authenticated Requests):**
+- Authorization header identifies you to GitHub API
+- Counts against your personal rate limit (5,000 requests/hour)
+- 🚀 Analysis Capacity: ~2,500-5,000 repositories/hour
+
+### 📈 Performance Impact
+
+Each Git Seer analysis makes 1-2 API calls per repository:
+- 1 call for repository metadata (stars, forks, description)
+- 1 call for complete file tree structure
+
+| Authentication | Rate Limit | Repos/Hour | Use Case |
+|----------------|------------|------------|-----------|
+| None | 60 requests/hour | 30-60 repos | Quick checks, demos |
+| Token | 5,000 requests/hour | 2,500-5,000 repos | Development, batch analysis |
+
+### 🎯 Creating a GitHub Token
+
+1. Go to GitHub Settings → Personal Access Tokens
+2. Click "Generate new token" → Choose "Personal access tokens (classic)"
+3. Set Token Name: `git-seer-cli`
+4. Select Scopes:
+   - ✅ `public_repo` (for public repository access)
+   - ✅ `repo` (only if you need private repository access)
+
+5. Generate Token and copy it immediately
+6. Set Environment Variable:
+
+```bash
+# Linux/macOS
+echo 'export GITHUB_TOKEN=your_token_here' >> ~/.bashrc
+source ~/.bashrc
+
+# Windows PowerShell
+$env:GITHUB_TOKEN="your_token_here"
+
+# Windows Command Prompt
+set GITHUB_TOKEN=your_token_here
+```
+
+### 🔒 Security Best Practices
+
+- 🔐 Never commit tokens to version control
+- 🔄 Rotate tokens regularly (every 6-12 months)
+- 📝 Use minimal scopes required for your use case
+- 🗑️ Delete unused tokens from GitHub settings
+- 💾 Store securely using environment variables or secret managers
+
 ## 🔮 Future Enhancements
 
 - [ ] 📈 **Commit Analysis** - Activity patterns and contributor insights
